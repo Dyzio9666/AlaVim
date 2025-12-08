@@ -20,8 +20,8 @@ int main(){
         fileName[len- 1] = '\0';
         // fileName[len-2] = '/';
     }
-    printf("%s" , fileName);
-    if(tcgetattr(STDIN_FILENO , &stare_ustawienia) != 0){ // pobiera aktuale ustawienia terminala
+    // printf("%s" , fileName);
+    if(tcgetattr(STDIN_FILENO , &stare_ustawienia) != 0){   // pobiera aktuale ustawienia terminala
         
         printf("Bład w terminalu");
         return 1;
@@ -34,21 +34,33 @@ int main(){
 
     // printf("write a file to edit: ");
     // fgets(fileName , sizeof(fileName) , stdin);
-    
+
     
     FILE *our_file_read = fopen(fileName , "r");
-    FILE *our_file_write = fopen(fileName, "w");
     if(our_file_read == NULL){
         printf("file does not exist");
         return 1;
+    }    
+    fseek(our_file_read , 0 , SEEK_END);
+    long file_size = ftell(our_file_read);
+    rewind(our_file_read);
+    char *myText = malloc((file_size + 1) * sizeof(char));
+    if (myText == NULL) {
+        fclose(our_file_read);
+        return 1;
     }
+    fread(myText , 1, file_size, our_file_read);
+    myText[file_size] = '\0';
+    fclose(our_file_read);
+    printf("Tresc pliku:\n%s\n", myText);
     // char *buffer[] = malloc();
+    FILE *our_file_write = fopen(fileName, "w");
     int counter = 0;
     char buffer[50] = {0};
     int startSize = 2;
     // char *tekst = malloc(startSize *  sizeof(char));
     while(1){
-        char c = getchar();
+        char c = getchar(); 
         if ( c == 'q'){
             break;
         }
@@ -57,13 +69,10 @@ int main(){
         buffer[counter] = c;
         counter++;
     }   
-    printf("%s" , buffer);
     fprintf(our_file_write , "%s" , buffer);
-    fclose(our_file_read);
     fclose(our_file_write);
     tcsetattr(STDIN_FILENO , TCSANOW, &stare_ustawienia);
-    // atexit(disableRawModule());
-    // free(tekst);
+
     return 0;
 
 }
