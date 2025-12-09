@@ -3,12 +3,73 @@
 #include <termios.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 typedef char string[50];
-struct termios stare_ustawienia , nowe_ustawienia;
 
+struct termios stare_ustawienia , nowe_ustawienia;
+char makeachoise(){
+
+    printf("If you want to exit type q \n");
+    printf("If you want to read your file type r\n");
+    printf("If you want to append somethingto your file  type a\n");
+    char userChoice;
+    scanf("%c" , &userChoice);
+    switch(userChoice){
+        case 'q':
+            return 'q';
+            break;
+        case 'r':
+            return 'r';
+            break;
+        case 'a':
+            return 'a';
+            break;
+        default:
+            return 'q';
+    }
+
+    
+
+}
+void die(const char *s ){
+    perror(s);
+    exit(1);
+}
+char editorReadKey(){
+    int nread;
+    char c;
+    while((nread == read(STDERR_FILENO , &c,1)) != 1){
+        if(nread == -1){ die("read");}
+    }
+    return c;
+}
+void editorRefreshscreen(){
+    write(STDOUT_FILENO ,"\x1b[2J",4);
+}
+void editorProccesKey(){
+    char c = editorReadKey();
+    switch(c){
+        case 'q':
+            exit(0);
+            break;
+    }
+}
 
 void disableRawMode(){
     tcsetattr(STDIN_FILENO ,TCSANOW , &stare_ustawienia);
+}
+void enableRawMode(){
+    if(tcgetattr(STDIN_FILENO , &stare_ustawienia) != 0){   // pobiera aktuale ustawienia terminala
+        
+        printf("Bład w terminalu");
+    }
+    atexit(disableRawMode);
+    nowe_ustawienia = stare_ustawienia;
+    nowe_ustawienia.c_lflag &= ~ECHO;
+    nowe_ustawienia.c_lflag &= ~ICANON;
+    nowe_ustawienia.c_lflag &= ~(IXON);
+    nowe_ustawienia.c_lflag &= ~(IEXTEN);
+    tcsetattr(STDIN_FILENO, TCSANOW , &nowe_ustawienia);
 }
 int main(){
     printf("Welcome to the text editor \n");
@@ -21,17 +82,8 @@ int main(){
         // fileName[len-2] = '/';
     }
     // printf("%s" , fileName);
-    if(tcgetattr(STDIN_FILENO , &stare_ustawienia) != 0){   // pobiera aktuale ustawienia terminala
-        
-        printf("Bład w terminalu");
-        return 1;
-    }
-    atexit(disableRawMode);
-    nowe_ustawienia = stare_ustawienia;
-    nowe_ustawienia.c_lflag &= ~ECHO;
-    nowe_ustawienia.c_lflag &= ~ICANON;
-    tcsetattr(STDIN_FILENO, TCSANOW , &nowe_ustawienia);
-
+    
+    enableRawMode();
     // printf("write a file to edit: ");
     // fgets(fileName , sizeof(fileName) , stdin);
 
@@ -54,20 +106,15 @@ int main(){
     fclose(our_file_read);
     printf("Tresc pliku:\n%s\n", myText);
     // char *buffer[] = malloc();
-    FILE *our_file_write = fopen(fileName, "w");
+    FILE *our_file_write = fopen(fileName, "a");
     int counter = 0;
     char buffer[50] = {0};
     int startSize = 2;
     // char *tekst = malloc(startSize *  sizeof(char));
+
     while(1){
-        char c = getchar(); 
-        if ( c == 'q'){
-            break;
-        }
-        printf("%c" , c);
-        // counter++;
-        buffer[counter] = c;
-        counter++;
+        editorRefreshscreen();
+        editorProccesKey();
     }   
     fprintf(our_file_write , "%s" , buffer);
     fclose(our_file_write);
